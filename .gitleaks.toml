@@ -1,0 +1,7 @@
+# Use gitleaks' default rules, but ignore example files that only hold fake values.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "example env files contain placeholders only"
+paths = ['''\.env\.example$''']

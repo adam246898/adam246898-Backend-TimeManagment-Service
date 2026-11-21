@@ -1,0 +1,2 @@
+# Keep Linux line endings in the repo, so scripts also run on EC2 / in Docker.
+* text=auto eol=lf
