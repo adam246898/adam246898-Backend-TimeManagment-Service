@@ -88,10 +88,10 @@ async function main() {
     console.error('INTERNAL_TOKEN is not set (put it in .env).');
     process.exit(1);
   }
-  console.log(`habits-service:  ${HABITS}\nstreaks-service: ${STREAKS}\ntest user:       ${USER}\n`);
+  console.log(`service-a (habits, Ahmed):  ${HABITS}\nservice-b (streaks, Teeba): ${STREAKS}\ntest user:                  ${USER}\n`);
   const u = `userId=${USER}`;
 
-  console.log('--- habits-service (Ahmed)');
+  console.log('--- service-a: habits-service (Ahmed)');
   await checkNeedsToken('GET /internal/habits', HABITS, `/internal/habits?${u}`);
   await checkList('GET /internal/habits', HABITS, `/internal/habits?${u}`, habitProblems);
   await checkList('GET /internal/habits?includeArchived=true', HABITS, `/internal/habits?${u}&includeArchived=true`, habitProblems);
@@ -104,7 +104,7 @@ async function main() {
     else pass('GET /internal/stats: habitsByCategory present, no user IDs');
   }
 
-  console.log('\n--- streaks-service (Teeba)');
+  console.log('\n--- service-b: streaks-service (Teeba)');
   const range = `${u}&from=${daysAgo(96)}&to=${today}`;
   await checkNeedsToken('GET /internal/checkins', STREAKS, `/internal/checkins?${range}`);
   await checkList('GET /internal/checkins (97 days)', STREAKS, `/internal/checkins?${range}`, (c) =>

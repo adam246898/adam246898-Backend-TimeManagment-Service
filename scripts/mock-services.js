@@ -1,4 +1,4 @@
-// FAKE habits-service (port 3001) and streaks-service (port 3002) for local testing, until
+// FAKE service-a = habits-service (Ahmed, port 3001) and service-b = streaks-service (Teeba, port 3002) for local testing, until
 // Ahmed's and Teeba's real services are ready. They answer the /internal routes from the contract
 // with sample data built around today's date.
 //   npm run mock        (in a second Git Bash window, then `npm run dev` in the first)
@@ -57,7 +57,7 @@ habitsApp.get('/internal/habits', (req, res) => {
 habitsApp.get('/internal/habits/due', (req, res) => res.json({ data: habits.slice(0, 2).concat(habits[3]) }));
 habitsApp.get('/internal/stats', (req, res) =>
   res.json({ habitsByCategory: [{ category: 'health', count: 31 }, { category: 'fitness', count: 22 }] }));
-habitsApp.listen(3001, () => console.log('mock habits-service on http://localhost:3001'));
+habitsApp.listen(3001, () => console.log('mock service-a (habits, Ahmed) on http://localhost:3001'));
 
 const streaksApp = express();
 streaksApp.use(guard);
@@ -76,4 +76,4 @@ streaksApp.get('/internal/missed-notes', (req, res) =>
   res.json({ data: [{ habitId: habits[0].id, date: day(-5), note: 'Worked late.' }] }));
 streaksApp.get('/internal/stats', (req, res) =>
   res.json({ activeUsers: 42, checkinsPerDay: [{ date: day(-1), count: 118 }], challenges: { active: 12, passed: 5, failed: 3 } }));
-streaksApp.listen(3002, () => console.log('mock streaks-service on http://localhost:3002'));
+streaksApp.listen(3002, () => console.log('mock service-b (streaks, Teeba) on http://localhost:3002'));

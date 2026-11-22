@@ -1,6 +1,6 @@
-# time-service (Adam)
+# time-service = service-c (Adam)
 
-Part of **Habit Tracker with Streaks** (Group 03). Port **3003**, internal only: the browser reaches it
+Part of **Habit Tracker with Streaks** (Group 03): service-a = habits (Ahmed), service-b = streaks (Teeba), **service-c = time (this repo)**. Port **3003**, internal only: the browser reaches it
 through the gateway (`/api/...`), and the gateway removes the `/api` prefix.
 
 | Route (as the gateway sees it) | Who | What |

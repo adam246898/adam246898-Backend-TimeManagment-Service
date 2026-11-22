@@ -1,8 +1,8 @@
-// habits-service (Ahmed) internal API, contract section 6. We never read habits_* tables ourselves.
+// service-a: habits-service (Ahmed) internal API, contract section 6. We never read habits_* tables ourselves.
 const config = require('../config');
 const { callService, getList } = require('./http');
 
-const NAME = 'habits-service';
+const NAME = 'service-a (habits)';
 const base = () => config.habitsServiceUrl;
 
 // GET /internal/habits?userId=&ids=&includeArchived=   -> list of Habit (contract 4.3)

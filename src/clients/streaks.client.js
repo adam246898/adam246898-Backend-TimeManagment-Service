@@ -1,9 +1,9 @@
-// streaks-service (Teeba) internal API, contract section 6. We never read streaks_* tables ourselves.
+// service-b: streaks-service (Teeba) internal API, contract section 6. We never read streaks_* tables ourselves.
 const config = require('../config');
 const logger = require('../utils/logger');
 const { callService, getList } = require('./http');
 
-const NAME = 'streaks-service';
+const NAME = 'service-b (streaks)';
 const base = () => config.streaksServiceUrl;
 
 // GET /internal/checkins?userId=&from=&to=   -> list of Check-in (contract 4.6)

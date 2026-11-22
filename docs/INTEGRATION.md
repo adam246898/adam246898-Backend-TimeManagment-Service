@@ -1,8 +1,17 @@
 # time-service: how to connect to it
 
-For Ahmed (habits-service), Teeba (streaks-service) and whoever sets up the gateway and Docker Compose.
+For Ahmed (service-a), Teeba (service-b) and whoever sets up the gateway and Docker Compose.
 Everything here follows `gateway/docs/api-contract.md` v0.1. Items marked **PROPOSED** are not in the
 contract yet and need a contract pull request.
+
+| Docker Compose name | Service | Owner | Port | Internal address |
+|---|---|---|---|---|
+| `service-a` | habits-service | Ahmed | 3001 | `http://service-a:3001` |
+| `service-b` | streaks-service | Teeba | 3002 | `http://service-b:3002` |
+| `service-c` | time-service (this repo) | Adam | 3003 | `http://service-c:3003` |
+
+If a service listens on a different port inside its container, change the URL in the environment
+variables below; nothing in the code needs to change.
 
 ## 1. Quick check when the backends are connected
 
@@ -16,14 +25,14 @@ It calls every `/internal` route time-service uses, exactly as time-service call
 PASS / WARN / FAIL with the reason (wrong status, missing field, slower than 3 s, user IDs in stats).
 Create one habit, one challenge and one check-in for that user first, so the field checks have data.
 
-## 2. What time-service calls (please answer in this shape)
+## 2. What service-c calls (please answer in this shape)
 
-Every call sends `X-Internal-Token`, `X-Request-Id` and, for one user's data, `X-User-Id` **and**
+Every call (from service-c) sends `X-Internal-Token`, `X-Request-Id` and, for one user's data, `X-User-Id` **and**
 `userId` in the query. No answer within **3 seconds**, a network error or a 5xx makes time-service
 return `503 SERVICE_UNAVAILABLE`. A list may be a plain array or `{ "data": [...] }`; if it is paged
 (`{ data, page, limit, total }`), time-service fetches the remaining pages with `&page=N&limit=N`.
 
-### habits-service (Ahmed)
+### service-a: habits-service (Ahmed)
 
 | Call | Fields time-service reads |
 |---|---|
@@ -37,7 +46,7 @@ return `503 SERVICE_UNAVAILABLE`. A list may be a plain array or `{ "data": [...
 internal Habit. Without it, time-service only knows about the *current* pause, so days of a pause that
 has already ended are counted as due in "best days" (contract 5.4 says paused days are left out).
 
-### streaks-service (Teeba)
+### service-b: streaks-service (Teeba)
 
 | Call | Fields time-service reads |
 |---|---|
@@ -51,13 +60,13 @@ The missed-notes route is needed for the calendar's `hasMissedNote`. Until it ex
 works and shows `hasMissedNote: false`. **`activeUsers` is not in the contract:** time-service takes it
 from streaks-service, or from habits-service if only that one sends it.
 
-## 3. What time-service serves to other services
+## 3. What service-c serves to other services
 
-`POST http://time-service:3003/internal/reminders` (Ahmed calls this when a habit is created, edited,
+`POST http://service-c:3003/internal/reminders` (Ahmed, service-a, calls this when a habit is created, edited,
 paused, resumed, archived, unarchived or deleted):
 
 ```bash
-curl -i -X POST http://time-service:3003/internal/reminders \
+curl -i -X POST http://service-c:3003/internal/reminders \
   -H "X-Internal-Token: $INTERNAL_TOKEN" -H "Content-Type: application/json" \
   -d '{"userId":"<user uuid>","habitId":"<habit uuid>","action":"upsert"}'
 ```
@@ -68,11 +77,11 @@ curl -i -X POST http://time-service:3003/internal/reminders \
 - `400` if a field is missing, not a UUID, or unknown. `401` without the internal token.
 - For `delete`, it is fine to call after the habit is already deleted.
 
-## 4. What the gateway must do for time-service
+## 4. What the gateway must do for service-c
 
 | Public path | Forward to | Bearer token needed |
 |---|---|---|
-| `GET /api/dashboard`, `GET /api/calendar`, `GET /api/milestones` | `http://time-service:3003` | yes (role `user`) |
+| `GET /api/dashboard`, `GET /api/calendar`, `GET /api/milestones` | `http://service-c:3003` | yes (role `user`) |
 | `GET /api/integrations/google`, `POST .../connect`, `POST .../sync`, `DELETE /api/integrations/google` | same | yes (role `user`) |
 | `GET /api/integrations/google/callback` | same | **no** (public: Google redirects the browser here) |
 | `GET /api/admin/analytics` | same | yes (role `admin`) |
@@ -89,15 +98,15 @@ curl -i -X POST http://time-service:3003/internal/reminders \
 ## 5. Docker Compose block
 
 ```yaml
-  time-service:
-    build: ../time-service
+  service-c:                       # time-service (Adam)
+    build: ../time-service          # the folder where this repo is cloned
     expose: ["3003"]               # internal only; no public port needed
     environment:
       PORT: "3003"
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       DATABASE_URL: ${DATABASE_URL}
-      HABITS_SERVICE_URL: http://habits-service:3001
-      STREAKS_SERVICE_URL: http://streaks-service:3002
+      HABITS_SERVICE_URL: http://service-a:3001
+      STREAKS_SERVICE_URL: http://service-b:3002
       FRONTEND_URL: http://localhost:8080
       GOOGLE_REDIRECT_URI: http://localhost:3000/api/integrations/google/callback
       AWS_ENDPOINT_URL: http://floci:4566

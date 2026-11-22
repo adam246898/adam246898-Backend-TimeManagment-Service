@@ -1,7 +1,7 @@
 // All settings come from environment variables (or Secrets Manager, see secrets.js).
 // Nothing secret is written in the code.
 const config = {
-  serviceName: 'time-service',
+  serviceName: 'time-service', // service-c in the team's Docker Compose
   port: Number(process.env.PORT) || 3003,
 
   // Shared secret that proves a request came from the gateway or another service.
@@ -9,8 +9,9 @@ const config = {
 
   databaseUrl: process.env.DATABASE_URL || '',
 
-  habitsServiceUrl: process.env.HABITS_SERVICE_URL || 'http://habits-service:3001',
-  streaksServiceUrl: process.env.STREAKS_SERVICE_URL || 'http://streaks-service:3002',
+  // Team naming: service-a = habits (Ahmed), service-b = streaks (Teeba), service-c = time (Adam, this one).
+  habitsServiceUrl: process.env.HABITS_SERVICE_URL || 'http://service-a:3001',
+  streaksServiceUrl: process.env.STREAKS_SERVICE_URL || 'http://service-b:3002',
   // An internal call that does not answer in time is treated as failed (contract section 6).
   upstreamTimeoutMs: Number(process.env.UPSTREAM_TIMEOUT_MS) || 3000,
 
