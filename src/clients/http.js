@@ -45,4 +45,24 @@ function asList(body) {
   return [];
 }
 
-module.exports = { callService, asList };
+// Gets a whole list. If the other service pages its answer ({ data, page, limit, total }, contract 3.6)
+// and there are more items than in the first page, the next pages are fetched too, so the
+// dashboard never silently works on only the first 20 check-ins.
+const MAX_PAGES = 50;
+async function getList(name, baseUrl, path, options) {
+  const first = await callService(name, baseUrl, path, options);
+  const items = asList(first);
+  if (!first || Array.isArray(first) || typeof first.total !== 'number' || items.length >= first.total) {
+    return items;
+  }
+  const limit = Number(first.limit) || items.length || 100;
+  const sep = path.includes('?') ? '&' : '?';
+  for (let page = (Number(first.page) || 1) + 1; items.length < first.total && page <= MAX_PAGES; page += 1) {
+    const next = asList(await callService(name, baseUrl, `${path}${sep}page=${page}&limit=${limit}`, options));
+    if (next.length === 0) break;
+    items.push(...next);
+  }
+  return items;
+}
+
+module.exports = { callService, asList, getList };

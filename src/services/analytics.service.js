@@ -13,13 +13,15 @@ async function getAnalytics(ctx, range) {
     streaksClient.stats(ctx, range),
   ]);
   const challenges = streakStats.challenges || {};
+  // The contract does not say which service counts active users: take it from whichever sends it.
+  const activeUsers = streakStats.activeUsers !== undefined ? streakStats.activeUsers : habitStats.activeUsers;
   return {
     range,
-    activeUsers: count(streakStats.activeUsers),
-    habitsByCategory: list(habitStats.habitsByCategory)
+    activeUsers: count(activeUsers),
+    habitsByCategory: list(habitStats.habitsByCategory || habitStats.data)
       .filter((r) => r && typeof r.category === 'string')
       .map((r) => ({ category: r.category, count: count(r.count) })),
-    checkinsPerDay: list(streakStats.checkinsPerDay)
+    checkinsPerDay: list(streakStats.checkinsPerDay || streakStats.data)
       .filter((r) => r && typeof r.date === 'string')
       .map((r) => ({ date: r.date, count: count(r.count) })),
     challenges: {
