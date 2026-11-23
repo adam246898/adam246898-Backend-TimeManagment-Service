@@ -4,7 +4,7 @@ const db = require('../config/db');
 const habitsClient = require('../clients/habits.client');
 const streaksClient = require('../clients/streaks.client');
 const { notFound } = require('../utils/errors');
-const { reachedStreakMilestones, nextStreakMilestone, challengeLength } = require('./milestoneRules');
+const { reachedStreakMilestones, nextStreakMilestone, challengeLength, isDayStreak } = require('./milestoneRules');
 
 // Fetches what milestones need from the other two services, in parallel.
 async function fetchData(ctx) {
@@ -54,7 +54,7 @@ async function evaluate(ctx, { habitId = null, data = null } = {}) {
   // 1. Work out every milestone reached so far and save the new ones.
   const reached = [];
   for (const s of streaks) {
-    if (!wanted(s.habitId)) continue;
+    if (!wanted(s.habitId) || !isDayStreak(s)) continue;
     const best = Math.max(Number(s.longestStreak) || 0, Number(s.currentStreak) || 0);
     for (const days of reachedStreakMilestones(best)) reached.push({ habitId: s.habitId, kind: 'streak', days });
   }
@@ -77,7 +77,7 @@ async function evaluate(ctx, { habitId = null, data = null } = {}) {
   const next = [];
   for (const s of streaks) {
     const habit = habitsById.get(s.habitId);
-    if (!wanted(s.habitId) || habit.type === 'challenge' || habit.status === 'archived') continue;
+    if (!wanted(s.habitId) || !isDayStreak(s) || habit.type === 'challenge' || habit.status === 'archived') continue;
     const n = nextStreakMilestone(Number(s.currentStreak) || 0, earnedByHabit.get(s.habitId));
     if (n) next.push({ habitId: s.habitId, name: habit.name, days: n.days, daysToGo: n.daysToGo });
   }

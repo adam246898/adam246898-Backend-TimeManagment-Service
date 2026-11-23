@@ -70,6 +70,14 @@ describe('GET /admin/analytics', () => {
     expect(JSON.stringify(res.body)).not.toContain(USER_ID);
   });
 
+  test('active challenges come from habits-service, passed/failed and active users from streaks-service', async () => {
+    habitsClient.stats.mockResolvedValue({ habitsByCategory: [], challenges: { active: 4 } });
+    streaksClient.stats.mockResolvedValue({ activeUsers: 7, checkinsPerDay: [], challenges: { passed: 2, failed: 1 } });
+    const res = await withHeaders(request(app).get('/admin/analytics'), adminHeaders());
+    expect(res.body.activeUsers).toBe(7);
+    expect(res.body.challenges).toEqual({ active: 4, passed: 2, failed: 1 });
+  });
+
   test('bad range -> 400; normal user -> 403', async () => {
     expect((await withHeaders(request(app).get('/admin/analytics?range=1y'), adminHeaders())).status).toBe(400);
     expect((await withHeaders(request(app).get('/admin/analytics'), userHeaders())).status).toBe(403);

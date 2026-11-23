@@ -111,6 +111,19 @@ describe('GET /milestones', () => {
     ]);
   });
 
+  test('weekly streaks (unit "weeks") never earn or aim for day milestones', async () => {
+    streaksClient.streaks.mockResolvedValue([
+      { habitId: H1, currentStreak: 3, longestStreak: 3, unit: 'days' },
+      { habitId: H2, currentStreak: 8, longestStreak: 8, unit: 'weeks' },
+    ]);
+    streaksClient.challenges.mockResolvedValue([]);
+    const res = await get('/milestones');
+    expect(res.status).toBe(200);
+    const insert = db.query.mock.calls.find(([sql]) => sql.includes('INSERT INTO time_milestones'));
+    expect(insert).toBeUndefined(); // H1 has no 7-day streak yet, H2's 8 WEEKS must not count as 7 days
+    expect(res.body.next).toEqual([{ habitId: H1, name: 'Read', days: 7, daysToGo: 4 }]);
+  });
+
   test("another user's habitId -> 404 and nothing is saved", async () => {
     const res = await get(`/milestones?habitId=${SOMEONE_ELSES}`);
     expect(res.status).toBe(404);

@@ -13,7 +13,11 @@ function nextStreakMilestone(currentStreak, earnedDays = new Set()) {
   return days === undefined ? null : { days, daysToGo: days - currentStreak };
 }
 
+// streaks-service counts times_per_week streaks in weeks (Streak.unit = "weeks"). Day milestones
+// (7, 14, 21 ... days) only apply to day streaks; a streak without a unit is treated as days.
+const isDayStreak = (streak) => !streak.unit || streak.unit === 'days';
+
 // A challenge milestone's `days` is the challenge length, start and deadline included.
 const challengeLength = (startDate, deadline) => diffDays(startDate, deadline) + 1;
 
-module.exports = { STREAK_MILESTONES, reachedStreakMilestones, nextStreakMilestone, challengeLength };
+module.exports = { STREAK_MILESTONES, reachedStreakMilestones, nextStreakMilestone, challengeLength, isDayStreak };

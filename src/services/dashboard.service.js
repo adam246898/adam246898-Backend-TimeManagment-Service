@@ -4,6 +4,7 @@ const streaksClient = require('../clients/streaks.client');
 const milestonesService = require('./milestones.service');
 const { todayIn, addDays } = require('../utils/dates');
 const { dailyBreakdown, completionRate, bestDays } = require('./stats');
+const { isDayStreak } = require('./milestoneRules');
 
 const RANGE_DAYS = { '30d': 30, '90d': 90 };
 
@@ -39,7 +40,8 @@ async function getDashboard(ctx, range) {
   for (const s of streaks) {
     const habit = habitsById.get(s.habitId);
     const current = Number(s.currentStreak) || 0;
-    if (!habit || habit.status === 'archived' || current <= 0) continue;
+    // bestCurrentStreak is in days (contract 5.4), so weekly streaks (unit "weeks") are not compared.
+    if (!habit || habit.status === 'archived' || current <= 0 || !isDayStreak(s)) continue;
     if (!bestCurrentStreak || current > bestCurrentStreak.days) {
       bestCurrentStreak = { habitId: s.habitId, name: habit.name, days: current };
     }

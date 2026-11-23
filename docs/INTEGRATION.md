@@ -42,7 +42,7 @@ return `503 SERVICE_UNAVAILABLE`. A list may be a plain array or `{ "data": [...
 | `GET /internal/habits?userId=&ids=<id>&includeArchived=true` | same, one habit (for reminders) |
 | `GET /internal/habits/due?userId=&date=YYYY-MM-DD` | `id` of each habit due that day |
 | `GET /internal/habits/:id/inactive-periods?userId=` | `{ "data": [{ "from", "until" }] }`: paused and archived dates, so they are not counted as missed (contract 5.4). Added by Ahmed; optional for time-service. |
-| `GET /internal/stats?range=30d\|90d` | `{ "habitsByCategory": [{ "category": "health", "count": 31 }] }` |
+| `GET /internal/stats?range=30d\|90d` | `{ "habitsByCategory": [{ "category": "health", "count": 31 }], "challenges": { "active": 1 } }` (`challenges.active` agreed on 2026-11-23) |
 
 **Tested on 2026-11-23 against Ahmed's real service** (commit `2449795`): all of the calls above pass,
 and creating a habit with a reminder makes service-a call service-c's `/internal/reminders` (202).
@@ -56,8 +56,17 @@ streaks-service follows the contract (its default is the older `legacy` protocol
 | `GET /internal/checkins?userId=&from=&to=` (up to 97 days) | `habitId`, `date` |
 | `GET /internal/streaks?userId=` | `habitId`, `currentStreak`, `longestStreak` |
 | `GET /internal/challenges?userId=` | ChallengeProgress (4.8): `habitId`, `name`, `startDate`, `deadline`, `state`, `daysLeft`, `completionRate`, `result` |
-| `GET /internal/stats?range=30d\|90d` | `{ "activeUsers": 42, "checkinsPerDay": [{ "date", "count" }], "challenges": { "active", "passed", "failed" } }` |
-| **PROPOSED** `GET /internal/missed-notes?userId=&from=&to=` | `habitId`, `date` (no note text needed) |
+| `GET /internal/stats?range=30d\|90d` | `{ "activeUsers": 42, "checkinsPerDay": [{ "date", "count" }], "challenges": { "passed", "failed" } }` (`active` comes from service-a) |
+| `GET /internal/missed-notes?userId=&from=&to=` (agreed on 2026-11-23) | `habitId`, `date` (no note text needed) |
+
+**Tested on 2026-11-23 against Teeba's real service** (commit `1c2c30b`), together with Ahmed's: check-ins,
+streaks and challenges all pass. service-c reads `Streak.unit` and gives day milestones only to `unit: "days"`
+streaks (weekly streaks are counted in weeks).
+
+**Agreed on 2026-11-23 and tested with all three services together:** service-b adds `/internal/missed-notes`
+and `activeUsers`; service-a adds `challenges.active` to its stats and `startDate` + `pausedPeriods` (inclusive
+`to`) to its internal habits, and uses `SERVICE_B_API=contract` by default. Until those commits are pushed,
+time-service still works: missing values show as "no notes" or 0.
 
 The missed-notes route is needed for the calendar's `hasMissedNote`. Until it exists, the calendar
 works and shows `hasMissedNote: false`. **`activeUsers` is not in the contract:** time-service takes it

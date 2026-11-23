@@ -12,9 +12,18 @@ async function getAnalytics(ctx, range) {
     habitsClient.stats(ctx, range),
     streaksClient.stats(ctx, range),
   ]);
-  const challenges = streakStats.challenges || {};
-  // The contract does not say which service counts active users: take it from whichever sends it.
-  const activeUsers = streakStats.activeUsers !== undefined ? streakStats.activeUsers : habitStats.activeUsers;
+  // Each total comes from the service that owns the data, with the other as a fallback:
+  // active users and passed/failed challenges from streaks-service (check-ins, results),
+  // active challenges from habits-service (challenge dates).
+  const pick = (first, second) => (first !== undefined ? first : second);
+  const streakChallenges = streakStats.challenges || {};
+  const habitChallenges = habitStats.challenges || {};
+  const activeUsers = pick(streakStats.activeUsers, habitStats.activeUsers);
+  const challenges = {
+    active: pick(habitChallenges.active, streakChallenges.active),
+    passed: pick(streakChallenges.passed, habitChallenges.passed),
+    failed: pick(streakChallenges.failed, habitChallenges.failed),
+  };
   return {
     range,
     activeUsers: count(activeUsers),
