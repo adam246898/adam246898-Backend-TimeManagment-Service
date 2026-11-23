@@ -73,6 +73,10 @@ bash scripts/setup-aws.sh     # safe to run twice; prints the lines to add to .e
 It creates the KMS key `alias/time-service-google-tokens`, the secret `time-service/secrets`, the log group
 `/habit-tracker/time-service`, a metric filter on 401/403/429 and an alarm (more than 10 in 5 minutes).
 
+## Summary of this service
+
+Functions, API, tables, AWS services, security and tests on one page: **[docs/SERVICE-SUMMARY.md](docs/SERVICE-SUMMARY.md)**.
+
 ## Connecting to the other backends
 
 See **[docs/INTEGRATION.md](docs/INTEGRATION.md)**: what time-service calls and serves, what the gateway
