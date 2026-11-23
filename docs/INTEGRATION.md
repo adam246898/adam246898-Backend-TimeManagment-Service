@@ -13,6 +13,23 @@ contract yet and need a contract pull request.
 If a service listens on a different port inside its container, change the URL in the environment
 variables below; nothing in the code needs to change.
 
+## Final integration test: PASSED (2026-11-23)
+
+All three backends ran together (one shared PostgreSQL database, the same `INTERNAL_TOKEN`):
+service-a `c26581b` (Ahmed), service-b `9c4afd5` (Teeba), service-c `a1ada5c` (Adam).
+
+| Area | Result |
+|---|---|
+| Own test suites | service-a 9/9, service-b 42/42, service-c 89/89 |
+| `npm run check:upstreams` | 12/12 PASS, no warnings |
+| Create habit (A) → checklist (B asks A) → check-in (B checks A) → duplicate check-in | 201 → listed → 201 → 409 |
+| Habit paused in the past (A's `pausedPeriods`) | B keeps the streak (8 days, not 3) |
+| Missed-day note (B) | shown on C's calendar (`hasMissedNote: true`) |
+| C dashboard, calendar, milestones, admin analytics | 200; admin shows totals only (active users, active challenges) |
+| Delete habit (A) | B deletes its check-ins (A → B), C gets `upsert` then `delete` reminders (A → C) |
+| Security on A, B and C | no or wrong internal token 401; admin on personal routes 403; user on admin route 403; another user's habit 404; header/query user mismatch 400/403; bad input 400; non-JSON 415 |
+| service-b down / service-a down (IT-11) | callers answer 503 in under 0.01 s, nothing crashes, all recover when it is back |
+
 ## 1. Quick check when the backends are connected
 
 From the `time-service` folder, with `INTERNAL_TOKEN`, `HABITS_SERVICE_URL` and `STREAKS_SERVICE_URL` in `.env`:

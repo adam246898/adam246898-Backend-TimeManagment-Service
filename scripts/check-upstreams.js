@@ -131,7 +131,7 @@ async function main() {
       typeof c.completionRate === 'number' ? null : 'completionRate must be a number',
       Number.isInteger(c.daysLeft) ? null : 'daysLeft must be an integer',
       [null, 'passed', 'failed'].includes(c.result) ? null : 'result must be null, passed or failed'].filter(Boolean));
-  await checkList('GET /internal/missed-notes (proposed)', STREAKS, `/internal/missed-notes?${range}`, (n) =>
+  await checkList('GET /internal/missed-notes', STREAKS, `/internal/missed-notes?${range}`, (n) =>
     [UUID.test(n.habitId || '') ? null : 'habitId must be a UUID', DATE.test(n.date || '') ? null : 'date must be YYYY-MM-DD'].filter(Boolean),
   { optional: true });
   {
