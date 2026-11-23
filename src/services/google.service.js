@@ -182,7 +182,7 @@ async function disconnect(ctx) {
 async function handleReminder({ userId, habitId, action }, requestId) {
   const link = await getLink(userId);
   if (!link) return 'not_connected';
-  const ctx = { userId, requestId };
+  const ctx = { userId, requestId, timezone: link.timezone };
   const accessToken = await accessTokenFor(link);
   await removeHabitEvents(accessToken, link, habitId);
   if (action === 'upsert') {

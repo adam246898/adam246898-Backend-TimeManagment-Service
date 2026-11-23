@@ -53,8 +53,14 @@ function weekdayOf(date) {
   return WEEKDAYS[(jsDay + 6) % 7];
 }
 
-// Weeks start on Monday (ISO week), the same rule the streaks service uses for times_per_week.
-const weekStart = (date) => addDays(date, -WEEKDAYS.indexOf(weekdayOf(date)));
+// First day of the week that contains `date`. The user's setting (X-User-Week-Starts-On) decides
+// whether weeks start on Sunday or Monday; Sunday is the default, as in habits-service and the
+// contract's user settings (4.1). All three services must use the same rule for times_per_week.
+function weekStart(date, weekStartsOn = 'sunday') {
+  const index = WEEKDAYS.indexOf(weekdayOf(date)); // mon = 0 ... sun = 6
+  const back = weekStartsOn === 'monday' ? index : (index + 1) % 7;
+  return addDays(date, -back);
+}
 
 function eachDay(from, to) {
   const days = [];

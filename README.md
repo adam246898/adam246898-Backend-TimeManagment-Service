@@ -82,12 +82,12 @@ streaks-service against what time-service needs.
 ## Assumptions to agree with the team
 
 - **habits-service** `GET /internal/habits` returns Habit objects with `schedule`, `status`, `pausedUntil`,
-  `challenge` and `createdAt`. Past paused days are only known if it also sends
-  `pausePeriods: [{ "from", "to" }]` (optional, not in the contract yet); otherwise only the current pause is excluded.
+  `challenge` and `createdAt`. Past paused and archived days come from its
+  `GET /internal/habits/:id/inactive-periods` (added by Ahmed; if it is missing, only the current pause is excluded).
 - **streaks-service** should add `GET /internal/missed-notes?userId=&from=&to=` for the calendar's `hasMissedNote`.
   Until then a 404 is treated as "no notes".
 - **streaks-service** `GET /internal/stats` returns `activeUsers`, `checkinsPerDay` and `challenges`;
   **habits-service** `GET /internal/stats` returns `habitsByCategory`.
-- Weeks start on Monday for `times_per_week`. Dashboard rates use the last 30 or 90 full days, ending yesterday.
+- Weeks start on the user's `X-User-Week-Starts-On` (Sunday if missing) for `times_per_week`. Dashboard rates use the last 30 or 90 full days, ending yesterday.
 - The gateway sends `X-Internal-Token` on every request it forwards, including the public Google callback.
 - A fourth table, `time_oauth_states`, stores the one-time OAuth states (hashed).

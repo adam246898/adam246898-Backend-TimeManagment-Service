@@ -28,7 +28,8 @@ Create one habit, one challenge and one check-in for that user first, so the fie
 ## 2. What service-c calls (please answer in this shape)
 
 Every call (from service-c) sends `X-Internal-Token`, `X-Request-Id` and, for one user's data, `X-User-Id` **and**
-`userId` in the query. No answer within **3 seconds**, a network error or a 5xx makes time-service
+`userId` in the query, plus the user's `X-User-Timezone` and `X-User-Week-Starts-On` (`sunday` by default).
+No answer within **3 seconds**, a network error or a 5xx makes time-service
 return `503 SERVICE_UNAVAILABLE`. A list may be a plain array or `{ "data": [...] }`; if it is paged
 (`{ data, page, limit, total }`), time-service fetches the remaining pages with `&page=N&limit=N`.
 
@@ -40,11 +41,13 @@ return `503 SERVICE_UNAVAILABLE`. A list may be a plain array or `{ "data": [...
 | `GET /internal/habits?userId=&includeArchived=true` | same, archived habits included |
 | `GET /internal/habits?userId=&ids=<id>&includeArchived=true` | same, one habit (for reminders) |
 | `GET /internal/habits/due?userId=&date=YYYY-MM-DD` | `id` of each habit due that day |
+| `GET /internal/habits/:id/inactive-periods?userId=` | `{ "data": [{ "from", "until" }] }`: paused and archived dates, so they are not counted as missed (contract 5.4). Added by Ahmed; optional for time-service. |
 | `GET /internal/stats?range=30d\|90d` | `{ "habitsByCategory": [{ "category": "health", "count": 31 }] }` |
 
-**PROPOSED (optional):** add `pausePeriods: [{ "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" or null }]` to the
-internal Habit. Without it, time-service only knows about the *current* pause, so days of a pause that
-has already ended are counted as due in "best days" (contract 5.4 says paused days are left out).
+**Tested on 2026-11-23 against Ahmed's real service** (commit `2449795`): all of the calls above pass,
+and creating a habit with a reminder makes service-a call service-c's `/internal/reminders` (202).
+In service-a's `.env`, set `SERVICE_C_URL` to service-c's address, and `SERVICE_B_API=contract` if
+streaks-service follows the contract (its default is the older `legacy` protocol).
 
 ### service-b: streaks-service (Teeba)
 
@@ -126,7 +129,7 @@ states, hashed; not yet listed in contract section 2).
 
 | Question | What time-service does now |
 |---|---|
-| Week start for `times_per_week` (users have a `weekStartsOn` setting, default `sunday`) | Monday (ISO week). habits, streaks and time must use the same rule. |
+| Week start for `times_per_week` (users have a `weekStartsOn` setting, default `sunday`) | The gateway sends `X-User-Week-Starts-On`; Sunday if missing (same as habits-service). streaks-service must use the same rule. |
 | Dashboard range "last 30 days" | the 30 full days ending yesterday; today is shown separately under `today` |
 | Calendar `habitId` that is not the user's | `404 NOT_FOUND` (ownership rule; not listed in 5.4's calendar errors) |
 | `POST /api/integrations/google/connect` when Google is not configured on the server | `503 SERVICE_UNAVAILABLE` |

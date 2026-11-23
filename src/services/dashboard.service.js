@@ -27,7 +27,10 @@ async function getDashboard(ctx, range) {
   const visible = habits.filter((h) => h.status !== 'archived');
   const habitsById = new Map(habits.map((h) => [h.id, h]));
 
-  const breakdown = dailyBreakdown({ habits: visible, checkins, from, to, today, tz });
+  const breakdown = dailyBreakdown({
+    habits: await habitsClient.withInactivePeriods(ctx, visible),
+    checkins, from, to, today, tz, weekStartsOn: ctx.weekStartsOn,
+  });
   const { bestDays: days, bestDay } = bestDays(breakdown);
 
   const doneToday = new Set(checkins.filter((c) => c.date === today).map((c) => c.habitId));

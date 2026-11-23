@@ -12,8 +12,8 @@ function habitStartDate(habit, tz) {
 }
 
 // Paused days are not due (the streak is frozen, not broken).
-// - habit.pausePeriods ([{ from, to }], `to` exclusive or null) is used when habits-service sends it.
-//   It is NOT in the contract yet; without it we only know about the CURRENT pause.
+// - habit.pausePeriods ([{ from, to }], `to` exclusive or null): paused and archived dates, from
+//   habits-service's GET /internal/habits/:id/inactive-periods (see habits.client.js).
 // - status "paused": not due from today until pausedUntil (or forever if pausedUntil is null).
 function isPausedOn(habit, date, today) {
   for (const p of habit.pausePeriods || []) {
@@ -28,7 +28,7 @@ function isPausedOn(habit, date, today) {
 // Is the habit due on `date`?
 // `doneDates` is the Set of dates this habit was checked in; it is needed for times_per_week,
 // which is due every day of the week until that week's count is reached.
-function isDueOn(habit, date, { tz, today, doneDates = new Set() }) {
+function isDueOn(habit, date, { tz, today, doneDates = new Set(), weekStartsOn = 'sunday' }) {
   if (habit.status === 'archived') return false;
   const start = habitStartDate(habit, tz);
   if (start && date < start) return false;
@@ -45,7 +45,7 @@ function isDueOn(habit, date, { tz, today, doneDates = new Set() }) {
       return Array.isArray(schedule.days) && schedule.days.includes(weekdayOf(date));
     case 'times_per_week': {
       let doneBefore = 0;
-      for (let d = weekStart(date); d < date; d = addDays(d, 1)) {
+      for (let d = weekStart(date, weekStartsOn); d < date; d = addDays(d, 1)) {
         if (doneDates.has(d)) doneBefore += 1;
       }
       return doneBefore < (Number(schedule.count) || 0);

@@ -41,7 +41,10 @@ async function getCalendar(ctx, { month, category, habitId }) {
     deadlines.get(deadline).push({ habitId: h.id, name: h.name });
   }
 
-  const breakdown = dailyBreakdown({ habits, checkins, from: first, to: last, today, tz });
+  const breakdown = dailyBreakdown({
+    habits: await habitsClient.withInactivePeriods(ctx, habits),
+    checkins, from: first, to: last, today, tz, weekStartsOn: ctx.weekStartsOn,
+  });
   const days = [];
   for (const [date, entry] of breakdown) {
     days.push({

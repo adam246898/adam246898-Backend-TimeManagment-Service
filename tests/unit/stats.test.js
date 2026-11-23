@@ -42,6 +42,20 @@ describe('isDueOn', () => {
     expect(isDueOn(h, '2026-11-18', { tz, today, doneDates })).toBe(false); // 2 done: target reached
     expect(isDueOn(h, '2026-11-23', { tz, today, doneDates })).toBe(true); // new week
   });
+
+  test('times_per_week follows the week start setting (same rule as habits-service)', () => {
+    const h = habit({ id: 'h1', schedule: { type: 'times_per_week', count: 1 } });
+    const doneDates = new Set(['2026-11-21']); // Saturday
+    // Sunday 22: a new week if weeks start on Sunday, the same week if they start on Monday
+    expect(isDueOn(h, '2026-11-22', { tz, today, doneDates, weekStartsOn: 'sunday' })).toBe(true);
+    expect(isDueOn(h, '2026-11-22', { tz, today, doneDates, weekStartsOn: 'monday' })).toBe(false);
+  });
+
+  test('inactive periods from habits-service (paused or archived dates) are not due', () => {
+    const h = habit({ id: 'h1', pausePeriods: [{ from: '2026-11-18', to: null }] });
+    expect(isDueOn(h, '2026-11-17', { tz, today })).toBe(true);
+    expect(isDueOn(h, '2026-11-20', { tz, today })).toBe(false);
+  });
 });
 
 describe('best days and completion rate', () => {

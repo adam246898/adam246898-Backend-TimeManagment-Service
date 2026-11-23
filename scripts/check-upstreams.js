@@ -26,7 +26,8 @@ const warn = (msg) => out('WARN', msg);
 const fail = (msg) => { failures += 1; out('FAIL', msg); };
 
 async function call(base, path, { token = TOKEN } = {}) {
-  const headers = { Accept: 'application/json', 'X-User-Id': USER, 'X-Request-Id': 'check-upstreams' };
+  const headers = { Accept: 'application/json', 'X-User-Id': USER, 'X-Request-Id': 'check-upstreams',
+    'X-User-Timezone': process.env.CHECK_TIMEZONE || 'Africa/Cairo', 'X-User-Week-Starts-On': 'sunday' };
   if (token) headers['X-Internal-Token'] = token;
   const started = Date.now();
   try {
@@ -43,16 +44,17 @@ const listOf = (body) => (Array.isArray(body) ? body : body && Array.isArray(bod
 
 // Calls a route, checks it answers 200 in time with a list, then checks every item with `checkItem`
 // (which returns a list of problems).
-async function checkList(label, base, path, checkItem, { optional = false } = {}) {
+async function checkList(label, base, path, checkItem, { optional = false, emptyOk = false } = {}) {
   const r = await call(base, path);
   if (r.status === 0) return fail(`${label}: ${r.error} (${base})`);
-  if (optional && r.status === 404) return warn(`${label}: route not there yet (404). Optional: calendar shows no missed notes.`);
+  if (optional && r.status === 404) return warn(`${label}: route not there yet (404). Optional for time-service.`);
   if (r.status !== 200) return fail(`${label}: expected 200, got ${r.status} ${JSON.stringify(r.body)}`);
   const items = listOf(r.body);
   if (!items) return fail(`${label}: answer must be a list or { "data": [...] }, got ${JSON.stringify(r.body).slice(0, 120)}`);
   if (r.body.total !== undefined && items.length < r.body.total) {
     warn(`${label}: paged answer (${items.length} of ${r.body.total}); time-service fetches the other pages itself`);
   }
+  if (items.length === 0 && emptyOk) return pass(`${label}: 200, empty list (${r.ms} ms)`);
   if (items.length === 0) return warn(`${label}: 200 but the list is empty, so fields could not be checked. Add data for user ${USER}.`);
   const problems = [...new Set(items.flatMap(checkItem))];
   if (problems.length) return fail(`${label}: ${problems.join('; ')}`);
@@ -96,6 +98,15 @@ async function main() {
   await checkList('GET /internal/habits', HABITS, `/internal/habits?${u}`, habitProblems);
   await checkList('GET /internal/habits?includeArchived=true', HABITS, `/internal/habits?${u}&includeArchived=true`, habitProblems);
   await checkList(`GET /internal/habits/due?date=${today}`, HABITS, `/internal/habits/due?${u}&date=${today}`, habitProblems);
+  {
+    const first = listOf((await call(HABITS, `/internal/habits?${u}`)).body) || [];
+    if (first[0] && first[0].id) {
+      await checkList('GET /internal/habits/:id/inactive-periods', HABITS, `/internal/habits/${first[0].id}/inactive-periods?${u}`,
+        (p) => [DATE.test(p.from || '') ? null : 'from must be YYYY-MM-DD',
+          p.until === null || DATE.test(p.until || '') ? null : 'until must be YYYY-MM-DD or null'].filter(Boolean),
+        { optional: true, emptyOk: true });
+    }
+  }
   {
     const r = await call(HABITS, '/internal/stats?range=30d');
     if (r.status !== 200) fail(`GET /internal/stats: expected 200, got ${r.status || r.error}`);

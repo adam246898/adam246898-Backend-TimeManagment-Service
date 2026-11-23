@@ -40,6 +40,7 @@ beforeEach(() => {
   streaksClient.challenges.mockResolvedValue([
     { habitId: CH, startDate: '2026-10-01', deadline: '2026-10-30', state: 'ended', result: 'passed' },
   ]);
+  habitsClient.withInactivePeriods.mockImplementation(async (ctx, list) => list);
   db.query.mockResolvedValue({ rows: [] });
 });
 

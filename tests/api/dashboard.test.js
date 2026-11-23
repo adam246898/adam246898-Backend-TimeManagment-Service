@@ -95,13 +95,17 @@ test('returns the dashboard in the contract shape', async () => {
   expect(res.body.completionRate).toBe(0.73);
 });
 
-test('every internal call carries the user ID, internal token and request ID', async () => {
-  await getDashboard();
+test('every internal call carries the user ID, internal token, request ID, time zone and week start', async () => {
+  await withHeaders(request(app).get('/dashboard'), userHeaders({ 'X-User-Timezone': 'Africa/Cairo', 'X-User-Week-Starts-On': 'monday' }));
   expect(seen.length).toBeGreaterThanOrEqual(5);
+  // the paused/archived dates of each habit are asked for too
+  expect(seen.some((c) => c.url.startsWith(`/internal/habits/${READ}/inactive-periods?userId=`))).toBe(true);
   for (const call of seen) {
     expect(call.headers['x-internal-token']).toBe('test-internal-token');
     expect(call.headers['x-user-id']).toBe(USER_ID);
     expect(call.headers['x-request-id']).toBe('req-test-1');
+    expect(call.headers['x-user-timezone']).toBe('Africa/Cairo');
+    expect(call.headers['x-user-week-starts-on']).toBe('monday');
     expect(call.url).toContain(`userId=${USER_ID}`);
   }
 });

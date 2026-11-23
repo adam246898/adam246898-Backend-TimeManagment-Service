@@ -7,11 +7,14 @@ describe('date helpers', () => {
     expect(d.diffDays('2026-11-01', '2026-11-21')).toBe(20);
   });
 
-  test('weekdayOf and weekStart (weeks start on Monday)', () => {
+  test('weekdayOf and weekStart (Sunday by default, Monday when the user chose it)', () => {
     expect(d.weekdayOf('2026-11-21')).toBe('sat');
     expect(d.weekdayOf('2026-11-23')).toBe('mon');
-    expect(d.weekStart('2026-11-22')).toBe('2026-11-16');
-    expect(d.weekStart('2026-11-23')).toBe('2026-11-23');
+    // 2026-11-22 is a Sunday
+    expect(d.weekStart('2026-11-22')).toBe('2026-11-22');
+    expect(d.weekStart('2026-11-21')).toBe('2026-11-15');
+    expect(d.weekStart('2026-11-22', 'monday')).toBe('2026-11-16');
+    expect(d.weekStart('2026-11-23', 'monday')).toBe('2026-11-23');
   });
 
   test('isValidDate rejects impossible dates', () => {

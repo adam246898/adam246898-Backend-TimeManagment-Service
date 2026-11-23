@@ -17,13 +17,13 @@ function doneDatesByHabit(checkins) {
 
 // For every day from `from` to `to`: how many habits were due and how many of those were done.
 // Returns a Map: date -> { due, done }.
-function dailyBreakdown({ habits, checkins, from, to, today, tz }) {
+function dailyBreakdown({ habits, checkins, from, to, today, tz, weekStartsOn = 'sunday' }) {
   const days = new Map(eachDay(from, to).map((d) => [d, { due: 0, done: 0 }]));
   const doneMap = doneDatesByHabit(checkins);
   for (const habit of habits) {
     const doneDates = doneMap.get(habit.id) || new Set();
     for (const [date, entry] of days) {
-      if (!isDueOn(habit, date, { tz, today, doneDates })) continue;
+      if (!isDueOn(habit, date, { tz, today, doneDates, weekStartsOn })) continue;
       entry.due += 1;
       if (doneDates.has(date)) entry.done += 1;
     }

@@ -8,6 +8,9 @@ const { serviceUnavailable } = require('../utils/errors');
 async function callService(name, baseUrl, path, { ctx = {}, method = 'GET', body, allow404 = false } = {}) {
   const headers = { 'X-Internal-Token': config.internalToken, Accept: 'application/json' };
   if (ctx.userId) headers['X-User-Id'] = ctx.userId;
+  // habits-service works out "today" and weeks from these, so always pass the user's settings on.
+  if (ctx.timezone) headers['X-User-Timezone'] = ctx.timezone;
+  if (ctx.weekStartsOn) headers['X-User-Week-Starts-On'] = ctx.weekStartsOn;
   if (ctx.requestId) headers['X-Request-Id'] = ctx.requestId;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 

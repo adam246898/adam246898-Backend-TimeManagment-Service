@@ -8,10 +8,13 @@ function userContext(req, res, next) {
   const userId = req.get('X-User-Id');
   const role = req.get('X-User-Role');
   const timezone = req.get('X-User-Timezone');
+  const weekStartsOn = req.get('X-User-Week-Starts-On');
   req.ctx = {
     userId: isUuid(userId) ? userId.toLowerCase() : null,
     role: role === 'user' || role === 'admin' ? role : null,
     timezone: isValidTimeZone(timezone) ? timezone : 'UTC',
+    // Same default as habits-service: Sunday when the gateway does not send the user's setting.
+    weekStartsOn: weekStartsOn === 'monday' ? 'monday' : 'sunday',
     requestId: req.requestId,
   };
   next();
