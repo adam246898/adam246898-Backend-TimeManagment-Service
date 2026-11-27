@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UseOwnKmsKey",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+      ],
+      "Resource": "arn:aws:kms:us-east-1:000000000000:key/5055281b-6a01-49de-bbb3-bfbfaa45c47d"
+    },
+    {
+      "Sid": "ReadOwnSecret",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:us-east-1:000000000000:secret:time-service/secrets-LDL6V3"
+    },
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:000000000000:log-group:/habit-tracker/time-service",
+        "arn:aws:logs:us-east-1:000000000000:log-group:/habit-tracker/time-service:*"
+      ]
+    },
+    {
+      "Sid": "ListOwnBackups",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::time-service-backups"
+    },
+    {
+      "Sid": "ReadWriteOwnBackups",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::time-service-backups/backups/*"
+    }
+  ]
+}

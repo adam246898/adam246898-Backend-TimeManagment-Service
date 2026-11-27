@@ -36,6 +36,8 @@ const config = {
   secretsId: process.env.SECRETS_ID || '',
   // Optional: send JSON logs straight to this CloudWatch log group.
   logGroup: process.env.CLOUDWATCH_LOG_GROUP || '',
+  // Private, KMS-encrypted S3 bucket for backups of the time_* tables (scripts/backup.js, restore.js).
+  backupBucket: process.env.BACKUP_BUCKET || 'time-service-backups',
 };
 
 module.exports = config;

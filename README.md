@@ -61,7 +61,7 @@ curl -s -H "X-Internal-Token: $T" -H "X-User-Id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaa
   -H "X-User-Role: user" -H "X-User-Timezone: Africa/Cairo" "http://localhost:3003/dashboard?range=30d"
 ```
 
-## 3. AWS resources in Floci (KMS, Secrets Manager, CloudWatch)
+## 3. AWS resources in Floci (KMS, Secrets Manager, CloudWatch, S3, IAM)
 
 With Floci running and the `floci` AWS CLI profile set up:
 
@@ -71,7 +71,17 @@ bash scripts/setup-aws.sh     # safe to run twice; prints the lines to add to .e
 ```
 
 It creates the KMS key `alias/time-service-google-tokens`, the secret `time-service/secrets`, the log group
-`/habit-tracker/time-service`, a metric filter on 401/403/429 and an alarm (more than 10 in 5 minutes).
+`/habit-tracker/time-service`, a metric filter on 401/403/429 and an alarm (more than 10 in 5 minutes), the private
+KMS-encrypted backup bucket `time-service-backups` (versioned, Glacier after 30 days), and the least-privilege
+IAM role `time-service-role` (policy in `infra/iam/time-service-policy.json`).
+
+Backups of the `time_*` tables:
+
+```bash
+npm run backup                 # gzip JSON to s3://time-service-backups/backups/<date>/..., KMS-encrypted
+npm run restore -- --list      # show the backups
+npm run restore                # put back missing rows from the newest backup (never overwrites existing rows)
+```
 
 ## shared-service/ (the shared gateway functions)
 

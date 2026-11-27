@@ -145,6 +145,7 @@ curl -i -X POST http://service-c:3003/internal/reminders \
       KMS_KEY_ID: alias/time-service-google-tokens
       SECRETS_ID: time-service/secrets          # holds GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
       CLOUDWATCH_LOG_GROUP: /habit-tracker/time-service
+      BACKUP_BUCKET: time-service-backups        # npm run backup / restore (S3, KMS-encrypted)
 ```
 
 Database: run `db/time_tables.sql` once (or `npm run db:init`). It creates only `time_*` tables:

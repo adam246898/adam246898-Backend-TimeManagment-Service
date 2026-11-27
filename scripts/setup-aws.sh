@@ -15,8 +15,13 @@ LOG_GROUP="/habit-tracker/$SERVICE"
 METRIC_NAMESPACE="HabitTracker"
 METRIC_NAME="TimeServiceRejectedRequests"
 ALARM_NAME="$SERVICE-rejected-requests"
+BUCKET="$SERVICE-backups"
+ROLE_NAME="$SERVICE-role"
+POLICY_NAME="$SERVICE-least-privilege"
+REGION="${AWS_REGION:-us-east-1}"
 
-echo "Account: $(aws sts get-caller-identity --query Account --output text)"
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+echo "Account: $ACCOUNT"
 
 # --- 1. KMS key: encrypts users' Google refresh tokens and this service's secret ---
 if aws kms describe-key --key-id "$KEY_ALIAS" >/dev/null 2>&1; then
@@ -66,8 +71,66 @@ aws cloudwatch put-metric-alarm --alarm-name "$ALARM_NAME" \
   --comparison-operator GreaterThanThreshold --treat-missing-data notBreaching
 echo "alarm ready: $ALARM_NAME"
 
+# --- 4. S3: private, KMS-encrypted, versioned bucket for backups of the time_* tables ---
+# Report section 15: backups encrypted with KMS in S3; older than 30 days move to Glacier, deleted after a year.
+KEY_ARN=$(aws kms describe-key --key-id "$KEY_ALIAS" --query KeyMetadata.Arn --output text)
+if aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1; then
+  echo "bucket ready: $BUCKET (already existed)"
+else
+  aws s3api create-bucket --bucket "$BUCKET" >/dev/null
+  echo "bucket ready: $BUCKET (created)"
+fi
+aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true >/dev/null
+aws s3api put-bucket-encryption --bucket "$BUCKET" --server-side-encryption-configuration \
+  "{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"aws:kms\",\"KMSMasterKeyID\":\"$KEY_ARN\"},\"BucketKeyEnabled\":true}]}" >/dev/null
+aws s3api put-bucket-versioning --bucket "$BUCKET" --versioning-configuration Status=Enabled >/dev/null
+aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" --lifecycle-configuration \
+  '{"Rules":[{"ID":"backups-to-glacier-then-expire","Status":"Enabled","Filter":{"Prefix":"backups/"},"Transitions":[{"Days":30,"StorageClass":"GLACIER"}],"Expiration":{"Days":365}}]}' >/dev/null
+echo "bucket settings ready: public access blocked, KMS encryption, versioning, lifecycle (Glacier after 30 days)"
+
+# --- 5. IAM: service-c's own least-privilege role (report section 8.1) ---
+# It may use ONLY its own KMS key, its own secret, its own log group and its own backup bucket. No "Resource": "*".
+SECRET_ARN=$(aws secretsmanager describe-secret --secret-id "$SECRET_NAME" --query ARN --output text)
+LOG_ARN="arn:aws:logs:$REGION:$ACCOUNT:log-group:$LOG_GROUP"
+mkdir -p infra/iam
+node -e '
+const [keyArn, secretArn, logArn, bucket] = process.argv.slice(1);
+const fs = require("fs");
+fs.writeFileSync("infra/iam/time-service-trust.json", JSON.stringify({
+  Version: "2012-10-17",
+  Statement: [{ Effect: "Allow", Principal: { Service: "ec2.amazonaws.com" }, Action: "sts:AssumeRole" }],
+}, null, 2) + "\n");
+fs.writeFileSync("infra/iam/time-service-policy.json", JSON.stringify({
+  Version: "2012-10-17",
+  Statement: [
+    { Sid: "UseOwnKmsKey", Effect: "Allow", Action: ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey"], Resource: keyArn },
+    { Sid: "ReadOwnSecret", Effect: "Allow", Action: ["secretsmanager:GetSecretValue"], Resource: secretArn },
+    { Sid: "WriteOwnLogs", Effect: "Allow", Action: ["logs:CreateLogStream", "logs:PutLogEvents"], Resource: [logArn, `${logArn}:*`] },
+    { Sid: "ListOwnBackups", Effect: "Allow", Action: ["s3:ListBucket"], Resource: `arn:aws:s3:::${bucket}` },
+    { Sid: "ReadWriteOwnBackups", Effect: "Allow", Action: ["s3:PutObject", "s3:GetObject"], Resource: `arn:aws:s3:::${bucket}/backups/*` },
+  ],
+}, null, 2) + "\n");
+' "$KEY_ARN" "$SECRET_ARN" "$LOG_ARN" "$BUCKET"
+if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+  echo "role ready: $ROLE_NAME (already existed)"
+else
+  aws iam create-role --role-name "$ROLE_NAME" --description "service-c (time-service): least privilege" \
+    --assume-role-policy-document file://infra/iam/time-service-trust.json >/dev/null
+  echo "role ready: $ROLE_NAME (created)"
+fi
+# put-role-policy overwrites the policy with the same name, so the role always matches the file.
+aws iam put-role-policy --role-name "$ROLE_NAME" --policy-name "$POLICY_NAME" \
+  --policy-document file://infra/iam/time-service-policy.json
+aws iam get-instance-profile --instance-profile-name "$ROLE_NAME" >/dev/null 2>&1 || {
+  aws iam create-instance-profile --instance-profile-name "$ROLE_NAME" >/dev/null
+  aws iam add-role-to-instance-profile --instance-profile-name "$ROLE_NAME" --role-name "$ROLE_NAME"
+}
+echo "policy ready: $POLICY_NAME (own key, own secret, own log group, own backups only)"
+
 echo
 echo "Done. Put these lines in your .env:"
 echo "  KMS_KEY_ID=$KEY_ALIAS"
 echo "  SECRETS_ID=$SECRET_NAME"
 echo "  CLOUDWATCH_LOG_GROUP=$LOG_GROUP"
+echo "  BACKUP_BUCKET=$BUCKET"

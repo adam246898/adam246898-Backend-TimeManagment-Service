@@ -58,9 +58,11 @@ Calls it makes (all with `X-Internal-Token`, `X-User-Id`, `X-User-Timezone`, `X-
 | **CloudWatch Logs** | log group `/habit-tracker/time-service` (14-day retention) | One JSON line per request (time, request ID, user ID, route, status, duration); no tokens, secrets, OAuth codes or note text. |
 | **CloudWatch metric filter** | `time-service-rejected` → metric `HabitTracker/TimeServiceRejectedRequests` | Counts responses with status 401, 403 or 429. |
 | **CloudWatch alarm** | `time-service-rejected-requests` | Fires when there are more than 10 rejected requests in 5 minutes (tested: it went to `ALARM`). |
+| **S3** | bucket `time-service-backups` | Backups of the `time_*` tables (`npm run backup`, nightly with cron on EC2) and restore (`npm run restore`). The bucket blocks all public access, encrypts every object with service-c's KMS key, keeps versions, and moves backups to Glacier after 30 days (deleted after a year). Tested: delete all milestones → restore → all back; a second restore changes nothing. |
+| **IAM** | role `time-service-role` + policy `time-service-least-privilege` (+ instance profile for EC2) | Least privilege: service-c may only use its own KMS key, read its own secret, write its own log group and read/write its own backups. No `"Resource": "*"`. The policy is in `infra/iam/time-service-policy.json`. |
 
-Code uses the AWS SDK v3 with the endpoint from `AWS_ENDPOINT_URL` (Floci locally; empty on real AWS).
-Planned, not done yet: an IAM role for service-c limited to its own KMS key, secret and log group.
+So service-c uses **5 AWS services: KMS, Secrets Manager, CloudWatch, S3 and IAM** (all for security, monitoring
+and recovery). Code uses the AWS SDK v3 with the endpoint from `AWS_ENDPOINT_URL` (Floci locally; empty on real AWS).
 Shared by the team (not in this repo): RDS, EC2 / Auto Scaling, load balancer, API Gateway, CloudFront, WAF, Cognito.
 
 External API: **Google Calendar (OAuth 2.0)**, scope `calendar.app.created` only: the app creates its own
@@ -117,5 +119,5 @@ Tables: `gw_users`, `gw_login_attempts`, `gw_audit_logs`, `gw_revoked_tokens`.
 ## 8. Not done yet
 
 - Real Google sign-in (needs a Google Cloud OAuth client ID and secret).
-- IAM role for service-c, and running the k6 load test.
+- Running the k6 load test.
 - Frontend pages: dashboard, calendar, milestones, Google settings.

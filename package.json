@@ -13,11 +13,14 @@
     "test": "jest",
     "mock": "node --env-file=.env scripts/mock-services.js",
     "db:init": "node --env-file=.env scripts/db-init.js",
-    "check:upstreams": "node --env-file=.env scripts/check-upstreams.js"
+    "check:upstreams": "node --env-file=.env scripts/check-upstreams.js",
+    "backup": "node --env-file=.env scripts/backup.js",
+    "restore": "node --env-file=.env scripts/restore.js"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.700.0",
     "@aws-sdk/client-kms": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.1178.0",
     "@aws-sdk/client-secrets-manager": "^3.700.0",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
