@@ -92,7 +92,29 @@ External API: **Google Calendar (OAuth 2.0)**, scope `calendar.app.created` only
 - CI (GitHub Actions): tests, `npm audit` (0 vulnerabilities), Docker build, Gitleaks.
 - k6 load test script for the dashboard: `tests/load/dashboard.k6.js` (to be run for the report).
 
-## 7. Not done yet
+## 7. The shared service (`shared-service/`, port 3000)
+
+Also built by Adam, in this repo: the shared gateway functions, as a separate app with its own tests (54).
+
+| Function | Routes |
+|---|---|
+| Sign-up, login, logout through **Amazon Cognito** | `POST /api/auth/signup`, `/login`, `/logout` |
+| Profile and settings (name, time zone, week start) | `GET` / `PATCH /api/users/me` |
+| Admin account management (list, deactivate, reactivate) | `GET /api/admin/users`, `PATCH /api/admin/users/:id/status` |
+| Audit log | `GET /api/admin/audit-logs` |
+| Routing to service-a / b / c, `/internal/*` blocked | every other `/api/*` route |
+
+It checks every Cognito token itself (RS256 signature, issuer, app client, expiry), takes the role only from the
+Cognito `admin` group, replaces any `X-User-*` headers the client sent, refuses logged-out tokens and
+deactivated accounts at once, locks an email for 10 minutes after 5 failed logins, limits each IP to 100
+requests per minute, and writes security events to the audit log. Tested live with Floci and the three real
+services (sign-up → login → habits → checklist → check-in → dashboard), plus ST-01 to ST-04, ST-06, ST-07.
+
+Its AWS services: **Cognito** (user pool, app client, `admin` group), **Secrets Manager** (`gateway/secrets`),
+**CloudWatch** (`/habit-tracker/gateway` log group, metric filter on 401/403/429, alarm).
+Tables: `gw_users`, `gw_login_attempts`, `gw_audit_logs`, `gw_revoked_tokens`.
+
+## 8. Not done yet
 
 - Real Google sign-in (needs a Google Cloud OAuth client ID and secret).
 - IAM role for service-c, and running the k6 load test.

@@ -73,6 +73,13 @@ bash scripts/setup-aws.sh     # safe to run twice; prints the lines to add to .e
 It creates the KMS key `alias/time-service-google-tokens`, the secret `time-service/secrets`, the log group
 `/habit-tracker/time-service`, a metric filter on 401/403/429 and an alarm (more than 10 in 5 minutes).
 
+## shared-service/ (the shared gateway functions)
+
+The folder [shared-service/](shared-service/) is a separate app (port 3000) with the shared functions: sign-up,
+login and logout through Amazon Cognito, profile and settings, admin account management, the audit log, and
+routing every `/api/*` request to service-a, service-b or service-c. It has its own `package.json`, tests and
+Dockerfile; see [shared-service/README.md](shared-service/README.md). The team's gateway repo runs it with Docker Compose.
+
 ## Summary of this service
 
 Functions, API, tables, AWS services, security and tests on one page: **[docs/SERVICE-SUMMARY.md](docs/SERVICE-SUMMARY.md)**.

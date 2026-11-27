@@ -34,7 +34,8 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/tests/load/"
+      "/tests/load/",
+      "/shared-service/"
     ]
   }
 }

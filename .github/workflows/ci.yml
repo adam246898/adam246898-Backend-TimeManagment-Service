@@ -5,6 +5,7 @@ on:
     branches: [main]
 
 jobs:
+  # service-c (time-service): the code at the root of this repo
   build:
     runs-on: ubuntu-latest
     steps:
@@ -19,3 +20,23 @@ jobs:
         run: npm audit --audit-level=high --omit=dev
       - name: Docker image builds
         run: docker build -t time-service-ci .
+
+  # The shared service (Cognito accounts, profile, admin, audit log, routing): shared-service/
+  shared-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shared-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: shared-service/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: npm audit (fails on high or critical)
+        run: npm audit --audit-level=high --omit=dev
+      - name: Docker image builds
+        run: docker build -t shared-service-ci .
