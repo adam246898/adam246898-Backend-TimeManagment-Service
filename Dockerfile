@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY src ./src
+# Table setup (and, for the gateway, the admin account) so a Docker Compose stack can run them as one-shot jobs
+COPY scripts ./scripts
+COPY db ./db
 ENV NODE_ENV=production
 EXPOSE 3003
 USER node

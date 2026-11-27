@@ -35,7 +35,8 @@ async function main() {
     }));
     console.log(`Cognito user created: ${email}`);
   } catch (err) {
-    if (err.name !== 'UsernameExistsException') throw err;
+    // Real Cognito says UsernameExistsException; Floci says AliasExistsException (e-mail used as user name).
+    if (err.name !== 'UsernameExistsException' && err.name !== 'AliasExistsException') throw err;
     console.log(`Cognito user already exists: ${email}`);
   }
   await cognito.send(new AdminSetUserPasswordCommand({ ...pool, Password: ADMIN_PASSWORD, Permanent: true }));
